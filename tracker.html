@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Access Nature</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#2c5530">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- External CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
+  
+  <!-- App CSS -->
+  <link rel="stylesheet" href="src/css/base.css">
+  <link rel="stylesheet" href="src/css/layout.css">
+  <link rel="stylesheet" href="src/css/components.css">
+  <link rel="stylesheet" href="src/css/accessibility.css">
+  <link rel="stylesheet" href="src/css/themes.css">
+  <link rel="stylesheet" href="src/css/auth.css">
+  <link rel="stylesheet" href="src/css/high-contrast.css">
+  <link rel="stylesheet" href="src/css/ui-utilities.css">
+  <link rel="stylesheet" href="src/css/pwa.css">
+  <link rel="stylesheet" href="src/css/unified-nav.css">
+  <link rel="stylesheet" href="src/css/mobile-responsive.css">
+  <link rel="stylesheet" href="src/css/error-messages.css">
+
+  <!-- CRITICAL: Apply saved preferences immediately to prevent flash -->
+  <script>
+    (function() {
+      try {
+        var prefs = JSON.parse(localStorage.getItem('accessNature_displayPrefs') || '{}');
+        if (prefs.highContrast) {
+          document.documentElement.classList.add('high-contrast');
+        }
+        if (prefs.reducedMotion) {
+          document.documentElement.classList.add('reduced-motion');
+        }
+      } catch(e) {}
+    })();
+  </script>
+
+  <style>
+/* WCAG Accessibility Styles */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus styles for all interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid #2c5530;
+  outline-offset: 2px;
+}
+
+/* High contrast focus for dark backgrounds */
+.top-bar button:focus-visible,
+.floating-left button:focus-visible,
+.floating-right button:focus-visible {
+  outline: 3px solid #ffffff;
+  box-shadow: 0 0 0 5px rgba(44, 85, 48, 0.5);
+}
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #2c5530;
+  color: white;
+  padding: 8px 16px;
+  z-index: 100000;
+  text-decoration: none;
+  font-weight: 500;
+  transform: translateY(-100%);
+  transition: transform 0.2s ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    z-index: 10000;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #111827;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .nav-auth-indicator {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .nav-auth-indicator .auth-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: #f3f4f6;
+    border-radius: 16px;
+    font-size: 0.75rem;
+  }
+  .nav-auth-indicator .auth-status.signed-in {
+    background: #dcfce7;
+    color: #166534;
+  }
+  
+  /* Desktop: show nav-menu inline */
+  .nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .nav-menu .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    color: #4b5563;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+  }
+  .nav-menu .nav-link:hover { background: #f3f4f6; }
+  .nav-menu .nav-link.active { background: #667eea; color: white; }
+  .nav-menu .nav-auth .btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    background: #667eea;
+    color: white;
+    cursor: pointer;
+    font-size: 0.75rem;
+  }
+  
+  /* Hamburger button - hidden on desktop */
+  .menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    flex-shrink: 0;
+  }
+  .menu-toggle:focus {
+    outline: none !important;
+    background: transparent !important;
+  }
+  .hamburger-icon {
+    width: 24px;
+    height: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .hamburger-icon span {
+    display: block;
+    width: 24px;
+    height: 3px;
+    background: #374151;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+  .menu-toggle.active .hamburger-icon span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+  .menu-toggle.active .hamburger-icon span:nth-child(2) {
+    opacity: 0;
+  }
+  .menu-toggle.active .hamburger-icon span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+  }
+  
+  /* Offset existing elements for nav */
+  #map-container { top: 50px !important; height: calc(100vh - 50px) !important; }
+  .top-bar { top: 58px !important; }
+  .floating-left { top: 500px !important; }
+  .floating-right { top: 475px !important; }
+  
+  /* Hide old auth bar */
+  .auth-status-bar { display: none !important; }
+  
+  /* Compact weather widget for tracker */
+  .weather-container .weather-widget {
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+  }
+  
+  .weather-container .weather-icon {
+    font-size: 1.8rem;
+  }
+  
+  .weather-container .weather-temp {
+    font-size: 1.5rem;
+  }
+  
+  .weather-container .weather-details {
+    font-size: 0.75rem;
+  }
+  
+  .weather-container .weather-header {
+    margin-bottom: 8px;
+  }
+  
+  /* Auth modal must be above everything */
+  .auth-modal {
+    z-index: 20000 !important;
+  }
+  .auth-modal-backdrop {
+    z-index: 19999 !important;
+  }
+  .auth-modal-container {
+    z-index: 20001 !important;
+  }
+  
+  /* Mobile nav styles now handled by unified-nav.css */
+  @media (max-width: 768px) {
+    /* Ensure proper alignment */
+    .top-nav {
+      align-items: center !important;
+    }
+    .nav-auth-indicator {
+      flex-shrink: 0;
+    }
+  }
+  
+  /* Disable native browser pull-to-refresh */
+  html, body {
+    overscroll-behavior-y: contain;
+  }
+  
+  /* When modals are open, prevent all overscroll */
+  body.modal-open,
+  body.tracking-active {
+    overscroll-behavior: none;
+    touch-action: pan-x pan-y;
+  }
+  
+  /* Prevent pull-to-refresh on modal overlays */
+  .modal-overlay,
+  .survey-modal,
+  .accessibility-survey-modal,
+  [role="dialog"] {
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+  
+</style>
+
+<!-- Analytics & Error Monitoring -->
+<script src="src/utils/monitoring.js" defer></script>
+</head>
+<body>
+  <!-- Skip to main content link for keyboard users -->
+  <a href="#map-container" class="skip-link">Skip to map</a>
+  
+  <nav class="top-nav" role="navigation" aria-label="Main navigation">
+  <a href="index.html" class="nav-brand">🌲 Access Nature</a>
+  <div class="nav-auth-indicator">
+    <div class="auth-status" id="navAuthIndicator">
+      <span>👤</span>
+      <span id="navAuthStatusText">Guest</span>
+    </div>
+  </div>
+  <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+    <span class="hamburger-icon">
+      <span></span>
+      <span></span>
+      <span></span>
+    </span>
+  </button>
+  <div class="nav-menu" id="navMenu">
+    <a href="index.html" class="nav-link">🏠 Home</a>
+    <a href="tracker.html" class="nav-link active">🗺️ Track</a>
+    <a href="reports.html" class="nav-link">📋 Reports</a>
+    <a href="profile.html" class="nav-link" id="profileNavLink" style="display: none;">👤 Profile</a>
+    <button class="nav-link" onclick="window.mobilityProfileUI?.open()" style="background: none; border: none; cursor: pointer; text-align: left;">
+      ♿ Mobility Profile
+    </button>
+    <div class="nav-auth">
+      <button id="navAuthBtn" class="btn">Sign In</button>
+    </div>
+  </div>
+</nav>
+
+<!-- High Contrast Toggle - Placed in HTML for immediate visibility -->
+<button id="highContrastToggle" class="high-contrast-toggle" aria-label="Toggle high contrast mode for outdoor visibility" title="Toggle high contrast mode">
+  <span class="toggle-icon">☀️</span>
+  <span class="toggle-text">High Contrast</span>
+</button>
+
+  <!-- Auth Status Bar -->
+  <div id="authStatusBar" class="auth-status-bar">
+    <div id="userInfo" class="user-info hidden">
+      <span class="user-greeting">Welcome, <span id="userEmail"></span>!</span>
+      <button id="logoutBtn" class="auth-btn logout-btn">Logout</button>
+    </div>
+    <div id="authPrompt" class="auth-prompt">
+      <button id="showAuthBtn" class="auth-btn login-btn">Sign In</button>
+    </div>
+  </div>
+
+  <!-- Auth Modal Helper Functions -->
+  <script>
+    function closeAuthModal() {
+      document.getElementById('authModal')?.classList.add('hidden');
+    }
+    function switchToSignup() {
+      document.getElementById('loginForm')?.classList.remove('active');
+      document.getElementById('signupForm')?.classList.add('active');
+    }
+    function switchToLogin() {
+      document.getElementById('signupForm')?.classList.remove('active');
+      document.getElementById('loginForm')?.classList.add('active');
+    }
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+        btn.setAttribute('aria-label', 'Hide password');
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+        btn.setAttribute('aria-label', 'Show password');
+      }
+    }
+  </script>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="auth-modal hidden">
+    <div class="auth-modal-backdrop" onclick="closeAuthModal()"></div>
+    <div class="auth-modal-container" role="dialog" aria-labelledby="authModalTitle" aria-modal="true">
+      <div class="auth-modal-header">
+        <h2 id="authModalTitle">Welcome to Access Nature</h2>
+        <button class="auth-modal-close" onclick="closeAuthModal()" aria-label="Close authentication modal">✕</button>
+      </div>
+      
+      <div class="auth-modal-content">
+        <!-- Login Form -->
+        <div id="loginForm" class="auth-form active">
+          <div class="auth-form-header">
+            <h3>Sign In to Your Account</h3>
+            <p>Continue your accessibility mapping journey</p>
+          </div>
+          
+          <form class="auth-inputs" aria-label="Sign in form">
+            <div class="input-group">
+              <label for="loginEmail" class="visually-hidden">Email address</label>
+              <input type="email" id="loginEmail" placeholder="Email address" aria-label="Email address" required autocomplete="email">
+              <span class="input-icon" aria-hidden="true">📧</span>
+            </div>
+            
+            <div class="input-group password-group">
+              <label for="loginPassword" class="visually-hidden">Password</label>
+              <input type="password" id="loginPassword" placeholder="Password" aria-label="Password" required autocomplete="current-password">
+              <span class="input-icon" aria-hidden="true">🔒</span>
+              <button type="button" class="password-toggle" onclick="togglePasswordVisibility('loginPassword', this)" aria-label="Show password">👁️</button>
+            </div>
+            
+            <button type="submit" id="loginBtn" class="auth-submit-btn">
+              <span class="btn-text">Sign In</span>
+              <span class="btn-spinner hidden">⏳</span>
+            </button>
+          </form>
+          
+          <div class="auth-switch">
+            <p>Don't have an account? <button type="button" onclick="switchToSignup()" class="switch-btn">Sign up</button></p>
+          </div>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signupForm" class="auth-form">
+          <div class="auth-form-header">
+            <h3>Create Your Account</h3>
+            <p>Join the community making nature accessible</p>
+          </div>
+          
+          <form class="auth-inputs" aria-label="Create account form">
+            <div class="input-group">
+              <label for="signupName" class="visually-hidden">Full name</label>
+              <input type="text" id="signupName" placeholder="Full name" aria-label="Full name" required autocomplete="name">
+              <span class="input-icon" aria-hidden="true">👤</span>
+            </div>
+            
+            <div class="input-group">
+              <label for="signupEmail" class="visually-hidden">Email address</label>
+              <input type="email" id="signupEmail" placeholder="Email address" aria-label="Email address" required autocomplete="email">
+              <span class="input-icon" aria-hidden="true">📧</span>
+            </div>
+            
+            <div class="input-group password-group">
+              <label for="signupPassword" class="visually-hidden">Create password</label>
+              <input type="password" id="signupPassword" placeholder="Create password" aria-label="Create password" required autocomplete="new-password">
+              <span class="input-icon" aria-hidden="true">🔒</span>
+              <button type="button" class="password-toggle" onclick="togglePasswordVisibility('signupPassword', this)" aria-label="Show password">👁️</button>
+            </div>
+            
+            <button type="submit" id="signupBtn" class="auth-submit-btn">
+              <span class="btn-text">Create Account</span>
+              <span class="btn-spinner hidden">⏳</span>
+            </button>
+          </form>
+          
+          <div class="auth-switch">
+            <p>Already have an account? <button type="button" onclick="switchToLogin()" class="switch-btn">Sign in</button></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cloud Sync Indicator -->
+  <div id="cloudSyncIndicator" class="cloud-sync-indicator hidden">
+    <span class="sync-icon">☁️</span>
+    <span class="sync-text">Syncing...</span>
+  </div>
+  <!-- Map Container -->
+  <main id="map-container" role="main" aria-label="Trail tracking map">
+    <div id="map" role="application" aria-label="Interactive map"></div>
+  </main>
+
+  <!-- Compass -->
+  <div id="compass">
+    <div id="compass-needle"></div>
+    <div id="compass-center"></div>
+  </div>
+
+  <!-- Top Control Bar -->
+  <div class="top-bar" role="toolbar" aria-label="Tracking controls">
+    <button id="startBtn" class="round-button" title="Start Tracking" aria-label="Start tracking">▶</button>
+    <button id="pauseBtn" class="round-button" title="Pause" aria-label="Pause tracking">⏸</button>
+    <button id="stopBtn" class="round-button" title="Stop" aria-label="Stop tracking">⏹</button>
+    <span id="timer" class="stat-display" aria-live="polite" aria-label="Elapsed time">00:00:00</span>
+    <span class="separator" aria-hidden="true">|</span>
+    <span id="distance" class="stat-display" aria-live="polite" aria-label="Distance traveled">0.00 km</span>
+  </div>
+
+  <!-- Left Controls -->
+  <div class="floating-left" role="toolbar" aria-label="Map and accessibility controls">
+    <button id="toggleBtn" class="round-button" title="Toggle Rotation" aria-label="Toggle map rotation">🧭</button>
+    <button class="round-button" onclick="openAccessibilityForm()" title="Accessibility Survey" aria-label="Open accessibility survey form">♿</button>
+    <button class="round-button" onclick="safetyFeatures?.startLifeline()" title="Start Lifeline" aria-label="Start safety lifeline">📡</button>
+  </div>
+
+  <!-- Right Media Panel -->
+  <div class="floating-right media-panel" id="mediaPanel" role="toolbar" aria-label="Media controls">
+    <button id="takePhotoBtn" class="round-button" title="Take Photo" aria-label="Take photo">📷</button>
+    <button class="round-button" onclick="addTextNote()" title="Add Note" aria-label="Add text note">📝</button>
+    <button class="round-button" onclick="showRouteDataOnMap()" title="Show Route Data" aria-label="Show route data on map">🗺</button>
+  </div>
+  
+  <!-- Weather Widget Container (top right, below nav) -->
+  <div id="weatherContainer" class="weather-container" style="position: fixed; top: 60px; right: 10px; z-index: 900; max-width: 200px;"></div>
+
+  <!-- Bottom Navigation -->
+  <div id="bottomNav" class="bottom-nav" role="navigation" aria-label="Feature panels">
+    <button class="nav-button" onclick="togglePanel('exportPanel')" aria-label="Open export panel" aria-expanded="false" aria-controls="exportPanel">Export</button>
+    <button class="nav-button" onclick="togglePanel('summaryPanel')" aria-label="Open routes panel" aria-expanded="false" aria-controls="summaryPanel">Routes</button>
+    <button class="nav-button" onclick="togglePanel('trailGuidePanel')" aria-label="Open trail guides panel" aria-expanded="false" aria-controls="trailGuidePanel">Guides</button>
+    <button class="nav-button" onclick="togglePanel('safetyPanel')" aria-label="Open safety panel" aria-expanded="false" aria-controls="safetyPanel">Safety</button>
+  </div>
+
+  <!-- Export Panel -->
+  <div id="exportPanel" class="bottom-popup hidden">
+    <button id="prepareAndExportBtn">📦 Export Route</button>
+  <button id="exportGPXBtn">📍 Export GPX</button>
+  <button id="exportPDFBtn">📄 Export PDF</button>
+  <button id="exportSummaryBtn">🌐 Export Trail Guide</button>
+  <button id="saveToCloudBtn" class="cloud-save-btn">☁️ Save to Cloud</button>
+  </div>
+
+  <!-- Summary Panel -->
+  <div id="summaryPanel" class="bottom-popup hidden">
+    <button id="loadCloudRoutesBtn" class="cloud-load-btn">☁️ Load My Routes</button>
+  <button id="loadMyGuidesBtn" class="cloud-load-btn">🌐 Load My Guides</button>
+  <button onclick="offlineSync?.showPendingUploadsModal()">📦 Local Storage</button>
+  <button id="clearAllSessionsBtn">🗑️ Clear Routes</button>
+  <button id="clearAllAppDataBtn">🧹 Clear Everything</button>
+  </div>
+  
+  <!-- Safety Panel -->
+  <div id="safetyPanel" class="bottom-popup hidden">
+    <button onclick="safetyFeatures?.openEmergencyModal()">🆘 Emergency SOS</button>
+    <button onclick="safetyFeatures?.startLifeline()">📡 Start Lifeline</button>
+    <button onclick="safetyFeatures?.manageContacts()">👥 Emergency Contacts</button>
+    <button onclick="safetyFeatures?.showCurrentWeather('weatherContainer')">🌤️ Check Weather</button>
+    <button onclick="trailConditions?.quickReportCondition()">🚧 Report Conditions</button>
+    <button onclick="trailConditions?.showNearbyConditions()">📍 Nearby Conditions</button>
+    <button onclick="trailAlerts?.showSettingsModal()">⚠️ Alert Settings</button>
+    <button onclick="offlineMapsUI?.openModal()">📥 Offline Maps</button>
+  </div>
+
+  <!-- Dev Tools Panel -->
+  <div id="devToolsPanel" class="bottom-popup hidden">
+    <button onclick="showStorageMonitor()">🧪 Storage Monitor</button>
+    <button onclick="triggerImport()">📥 Import Route</button>
+    <button id="resetBtn" onclick="confirmAndResetApp()">🔄 Reset App</button>
+  </div>
+
+  <!-- Add this new panel after your existing panels -->
+<!-- <div id="trailGuidePanel" class="bottom-popup hidden">
+  <h3>🌐 My Trail Guides</h3>
+  <button id="loadMyGuidesBtn">📂 Load My Guides</button>
+  <div id="myGuidesList" class="guides-list"> -->
+    <!-- Dynamically populated -->
+  <!-- </div>
+</div> -->
+
+  <!-- Accessibility Form Modal -->
+  <div id="accessibilityOverlay" class="overlay hidden">
+    <div id="accessibilityFormContainer" class="modal-container"></div>
+  </div>
+
+  <!-- Hidden File Inputs -->
+  <input type="file" id="photoInput" accept="image/*" capture="environment" class="hidden" aria-label="Take or select photo">
+  <input type="file" id="importFile" accept=".json,.gpx" class="hidden" aria-label="Import route file">
+
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+  <!-- IMMEDIATE UI Handlers - No module dependencies -->
+  <script>
+    (function() {
+      // Hamburger Menu - Immediate handler
+      var menuToggle = document.getElementById('menuToggle');
+      var navMenu = document.getElementById('navMenu');
+      
+      console.log('[NAV] menuToggle:', menuToggle);
+      console.log('[NAV] navMenu:', navMenu);
+      
+      function closeMenu() {
+        navMenu?.classList.remove('active');
+        menuToggle?.classList.remove('active');
+        console.log('[NAV] Menu closed');
+      }
+      
+      menuToggle?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        navMenu?.classList.toggle('active');
+        menuToggle?.classList.toggle('active');
+        console.log('[NAV] Menu toggled, navMenu.classList:', navMenu?.classList.toString());
+        console.log('[NAV] navMenu display:', window.getComputedStyle(navMenu).display);
+      });
+      
+      navMenu?.querySelectorAll('a, button, .btn').forEach(function(el) {
+        el.addEventListener('click', closeMenu);
+      });
+      
+      document.addEventListener('click', function(e) {
+        if (navMenu?.classList.contains('active')) {
+          if (!navMenu.contains(e.target) && !menuToggle?.contains(e.target)) {
+            closeMenu();
+          }
+        }
+      });
+      
+      // High Contrast Toggle - Immediate handler
+      var hcToggle = document.getElementById('highContrastToggle');
+      var hcText = hcToggle?.querySelector('.toggle-text');
+      
+      function updateHCButton() {
+        var isHC = document.documentElement.classList.contains('high-contrast');
+        if (hcText) hcText.textContent = isHC ? 'Normal' : 'High Contrast';
+      }
+      
+      updateHCButton();
+      
+      // Mark as initialized to prevent module from adding duplicate listener
+      if (hcToggle) hcToggle.dataset.prefsInitialized = 'true';
+      
+      hcToggle?.addEventListener('click', function() {
+        var isNowHC = document.documentElement.classList.toggle('high-contrast');
+        try {
+          var prefs = JSON.parse(localStorage.getItem('accessNature_displayPrefs') || '{}');
+          prefs.highContrast = isNowHC;
+          localStorage.setItem('accessNature_displayPrefs', JSON.stringify(prefs));
+        } catch(e) {}
+        updateHCButton();
+        if (navigator.vibrate) navigator.vibrate(10);
+      });
+    })();
+  </script>
+
+  <!-- App JavaScript -->
+  <script type="module" src="src/main.js"></script>
+  <script type="module" src="src/features/auth.js"></script>
+  <script type="module" src="src/ui/displayPreferences.js"></script>
+  <script type="module" src="src/features/safetyFeatures.js"></script>
+  <script type="module" src="src/features/trailConditions.js"></script>
+  <script type="module" src="src/features/trailAlerts.js"></script>
+  <script type="module" src="src/features/offlineSync.js"></script>
+  <script type="module" src="src/pwa/pwaManager.js"></script>
+  <script type="module" src="src/pwa/offlineMapsUI.js"></script>
+
+  <script type="module">
+  // Check if redirected for sign-in
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('signin') === 'true') {
+    // Remove the parameter from URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    // Open auth modal after a brief delay to let page load
+    setTimeout(() => {
+      const authModal = document.getElementById('authModal');
+      if (authModal) {
+        authModal.classList.remove('hidden');
+      }
+    }, 500);
+  }
+  
+  // Auth setup (hamburger menu is handled in IMMEDIATE UI Handlers above)
+  try {
+    const { auth } = await import('./firebase-setup.js');
+    const { onAuthStateChanged, signOut } = await import('https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js');
+    
+    // Auth state
+    onAuthStateChanged(auth, async (user) => {
+      const indicator = document.getElementById('navAuthIndicator');
+      const text = document.getElementById('navAuthStatusText');
+      const btn = document.getElementById('navAuthBtn');
+      
+      if (user) {
+        // Verify user still exists on server
+        try {
+          await user.reload();
+        } catch (reloadError) {
+          console.error('❌ User session invalid:', reloadError.message);
+          // Sign out the deleted user
+          try {
+            await signOut(auth);
+          } catch (e) {}
+          return;
+        }
+        
+        indicator?.classList.add('signed-in');
+        if (text) text.textContent = user.displayName || user.email?.split('@')[0];
+        if (btn) {
+          btn.textContent = 'Sign Out';
+          btn.onclick = () => {
+            if (confirm('Sign out of Access Nature?')) {
+              signOut(auth);
+            }
+          };
+        }
+      } else {
+        indicator?.classList.remove('signed-in');
+        if (text) text.textContent = 'Guest';
+        if (btn) {
+          btn.textContent = 'Sign In';
+          btn.onclick = () => {
+            // Open existing auth modal instead of Google popup
+            const authModal = document.getElementById('authModal');
+            if (authModal) {
+              authModal.classList.remove('hidden');
+            } else {
+              // Fallback: try clicking the existing sign in button
+              document.getElementById('showAuthBtn')?.click();
+            }
+          };
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Firebase auth setup failed:', error);
+    // Even if Firebase fails, the hamburger menu still works
+    const btn = document.getElementById('navAuthBtn');
+    if (btn) {
+      btn.textContent = 'Sign In';
+      btn.onclick = () => {
+        const authModal = document.getElementById('authModal');
+        if (authModal) {
+          authModal.classList.remove('hidden');
+        }
+      };
+    }
+  }
+</script>
+</body>
+</html>
