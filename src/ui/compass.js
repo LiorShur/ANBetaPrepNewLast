@@ -3,10 +3,13 @@ import { toast } from '../utils/toast.js';
 /**
  * Compass rotation functionality
  * 
+ * Mode: "North-Up" - Map acts like a physical compass
+ * - North on the map always points to true north in the real world
+ * - When you face east, north appears on the LEFT of your screen
+ * - When you face south, north appears at the BOTTOM of your screen
+ * 
  * Heading convention: 0° = North, 90° = East, 180° = South, 270° = West
  * (Increases clockwise when viewed from above)
- * 
- * Mode: "Track-up" - Map rotates so your heading direction is always "up" on screen
  */
 export class CompassController {
   constructor() {
@@ -177,33 +180,29 @@ export class CompassController {
     let heading = null;
 
     // iOS Safari: webkitCompassHeading gives direct compass heading
-    // It already follows the convention: 0=N, 90=E, 180=S, 270=W
+    // Already follows convention: 0=N, 90=E, 180=S, 270=W, increases clockwise
     if (typeof event.webkitCompassHeading !== 'undefined' && event.webkitCompassHeading !== null) {
       heading = event.webkitCompassHeading;
     }
     // Android/Other: Use alpha value
     else if (event.alpha !== null && event.alpha !== undefined) {
-      // Alpha measures rotation around z-axis
-      // alpha = 0 means device top points to north
-      // alpha INCREASES counter-clockwise (when viewed from above)
-      // So: alpha = 0 → N, alpha = 90 → W, alpha = 180 → S, alpha = 270 → E
-      
-      // To convert to compass heading (0=N, 90=E, increases clockwise):
+      // Device orientation alpha:
+      // - alpha = 0 when device points north
+      // - alpha INCREASES counter-clockwise (as per W3C spec)
+      // - So: turn RIGHT (clockwise toward east) → alpha DECREASES
+      //
+      // To convert to compass heading (increases clockwise):
       // heading = (360 - alpha) % 360
-      // This gives: alpha=0 → 0(N), alpha=90 → 270(W), alpha=180 → 180(S), alpha=270 → 90(E) ✓
+      //
+      // This gives:
+      // - alpha=0 → heading=0 (N)
+      // - alpha=270 (turned right/clockwise) → heading=90 (E)
+      // - alpha=180 → heading=180 (S)
+      // - alpha=90 (turned left/counter-clockwise) → heading=270 (W)
       
-      // Wait, that's still wrong. Let me reconsider...
-      // Actually on most Android devices with deviceorientationabsolute:
-      // alpha = 0 means north, and alpha increases as device rotates LEFT (counter-clockwise)
+      heading = (360 - event.alpha) % 360;
       
-      // The user reports: turning east (right/clockwise), heading DECREASES from 360
-      // This means we're outputting (360 - alpha), and alpha is INCREASING when turning right
-      // So alpha increases clockwise on their device
-      
-      // For such devices, heading = alpha directly (no inversion needed)
-      heading = event.alpha;
-      
-      // Adjust for screen orientation
+      // Adjust for screen orientation if device is in landscape
       heading = this.adjustForScreenOrientation(heading);
     }
 
@@ -249,14 +248,22 @@ export class CompassController {
   }
 
   /**
-   * Update map rotation
-   * Rotates map so your heading direction is "up" on screen
+   * Update map rotation - "North-Up" mode
+   * Map acts like a physical compass - north always points to true north
+   * 
+   * When heading = 90 (facing east):
+   * - True north is to the LEFT of the user
+   * - Map must rotate -90° so north points LEFT on screen
    */
   updateMapRotation() {
     if (!this.dependencies.map || !this.isRotationEnabled) return;
 
     try {
-      // Rotate map by negative heading so your direction faces up
+      // Rotate map OPPOSITE to heading so north stays pointing north
+      // heading=0 (facing N) → rotate 0° (north at top)
+      // heading=90 (facing E) → rotate -90° (north at left)
+      // heading=180 (facing S) → rotate -180° (north at bottom)
+      // heading=270 (facing W) → rotate -270° = +90° (north at right)
       this.dependencies.map.setRotation(this.currentHeading);
     } catch (error) {
       console.error('🧭 Failed to update map rotation:', error);
@@ -265,13 +272,14 @@ export class CompassController {
 
   /**
    * Update compass needle to point toward north on screen
+   * The needle visual shows where north IS on the screen
    */
   updateCompassRotation() {
     const needleElement = document.getElementById('compass-needle');
     if (!needleElement) return;
 
-    // Needle points to where north is on screen
-    // If map is rotated by -heading, north is at angle = heading from top
+    // Needle points to where north is on screen after map rotation
+    // If map rotated -heading, north is at angle -heading from top
     const needleRotation = -this.currentHeading;
     needleElement.style.transform = `rotate(${needleRotation}deg)`;
   }
