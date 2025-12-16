@@ -327,16 +327,9 @@ html {
    TRACKER.HTML SPECIFIC MOBILE FIXES
    ============================================ */
 @media (max-width: 767px) {
-  /* Map container full screen */
-  #map-container,
-  #map {
-    position: fixed !important;
-    top: 50px !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 60px !important;
-    height: auto !important;
-  }
+  /* Map container - preserve rotation-friendly sizing from layout.css */
+  /* The 200%/200% size with -50% offset is needed for rotation without corner clipping */
+  /* Only override z-index if needed, don't touch size/position */
   
   /* Top control bar */
   .top-bar {
@@ -715,11 +708,7 @@ html {
     overflow-y: auto !important;
   }
   
-  /* Tracker adjustments */
-  #map-container {
-    bottom: 50px !important;
-  }
-  
+  /* Tracker adjustments - bottom-nav only, not map-container */
   .bottom-nav {
     height: 50px !important;
     padding: 6px 12px !important;
