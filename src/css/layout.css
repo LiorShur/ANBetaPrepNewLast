@@ -1,22 +1,29 @@
 /* Layout and positioning */
 
-#map, #map-container {
-  height: 100%;
-  width: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
+/* 
+ * Map container hierarchy for rotation:
+ * #map-wrapper - viewport, positioned below navbar (set in tracker.html)
+ * #map-container - 200% size, -50% offset, rotates for compass
+ * #map - fills container, Leaflet renders here
+ */
 
 #map-container {
   width: 200%;
   height: 200%;
-  position: absolute;
+  position: absolute !important;
   top: -50%;
   left: -50%;
   transform-origin: center center;
   transition: none;
   z-index: 1;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  position: absolute !important;
+  top: 0;
+  left: 0;
 }
 
 .top-bar {
@@ -120,5 +127,3 @@
   padding: 20px;
 
 }
-
-
