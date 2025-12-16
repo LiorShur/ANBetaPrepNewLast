@@ -986,8 +986,12 @@ textarea:focus-visible,
       lastOrientationEvent = event;
     }
     
+    function getCompassController() {
+      return window.app?.controllers?.compass;
+    }
+    
     function updateDebugDisplay() {
-      const compassCtrl = window.app?.controllers?.compass;
+      const compassCtrl = getCompassController();
       
       // Update heading
       const headingEl = document.getElementById('debug-heading');
@@ -1003,9 +1007,15 @@ textarea:focus-visible,
         document.getElementById('debug-alpha').textContent = e.alpha?.toFixed(1) ?? '--';
         document.getElementById('debug-beta').textContent = e.beta?.toFixed(1) ?? '--';
         document.getElementById('debug-gamma').textContent = e.gamma?.toFixed(1) ?? '--';
-        document.getElementById('debug-source').textContent = 
-          e.type === 'deviceorientationabsolute' ? 'absolute ✓' : 
-          e.absolute ? 'relative (abs)' : 'relative';
+        
+        // Show event type and lock status
+        const sourceEl = document.getElementById('debug-source');
+        if (compassCtrl && sourceEl) {
+          const eventType = e.type === 'deviceorientationabsolute' ? 'abs' : 
+                           e.absolute ? 'rel(abs)' : 'rel';
+          const locked = compassCtrl.eventType ? ` [${compassCtrl.eventType}]` : '';
+          sourceEl.textContent = eventType + locked;
+        }
       }
       
       // Update calibration offset
@@ -1017,53 +1027,57 @@ textarea:focus-visible,
       // Update map container offset info
       const mapOffsetEl = document.getElementById('debug-map-offset');
       if (mapOffsetEl) {
-        const wrapper = document.getElementById('map-wrapper');
         const container = document.getElementById('map-container');
-        if (wrapper && container) {
-          const wrapperRect = wrapper.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          const computedStyle = window.getComputedStyle(container);
-          mapOffsetEl.textContent = 
-            `T:${computedStyle.top} L:${computedStyle.left} W:${computedStyle.width}`;
+        if (container) {
+          const style = window.getComputedStyle(container);
+          mapOffsetEl.textContent = `T:${style.top} L:${style.left}`;
         }
       }
     }
     
-    // Calibration buttons
+    // Calibration buttons - use adjustCalibration method
     document.getElementById('calibrate-minus90')?.addEventListener('click', () => {
-      adjustCalibration(-90);
+      const ctrl = getCompassController();
+      if (ctrl) {
+        ctrl.adjustCalibration(-90);
+        updateDebugDisplay();
+      }
     });
     document.getElementById('calibrate-minus45')?.addEventListener('click', () => {
-      adjustCalibration(-45);
+      const ctrl = getCompassController();
+      if (ctrl) {
+        ctrl.adjustCalibration(-45);
+        updateDebugDisplay();
+      }
     });
     document.getElementById('calibrate-reset')?.addEventListener('click', () => {
-      const compassCtrl = window.app?.controllers?.compass;
-      if (compassCtrl) {
-        compassCtrl.calibrationOffset = 0;
+      const ctrl = getCompassController();
+      if (ctrl) {
+        ctrl.calibrationOffset = 0;
         updateDebugDisplay();
       }
     });
     document.getElementById('calibrate-plus45')?.addEventListener('click', () => {
-      adjustCalibration(45);
+      const ctrl = getCompassController();
+      if (ctrl) {
+        ctrl.adjustCalibration(45);
+        updateDebugDisplay();
+      }
     });
     document.getElementById('calibrate-plus90')?.addEventListener('click', () => {
-      adjustCalibration(90);
+      const ctrl = getCompassController();
+      if (ctrl) {
+        ctrl.adjustCalibration(90);
+        updateDebugDisplay();
+      }
     });
     document.getElementById('calibrate-north')?.addEventListener('click', () => {
-      const compassCtrl = window.app?.controllers?.compass;
-      if (compassCtrl) {
-        compassCtrl.calibrateToNorth();
+      const ctrl = getCompassController();
+      if (ctrl) {
+        ctrl.calibrateToNorth();
         updateDebugDisplay();
       }
     });
-    
-    function adjustCalibration(degrees) {
-      const compassCtrl = window.app?.controllers?.compass;
-      if (compassCtrl) {
-        compassCtrl.calibrationOffset = (compassCtrl.calibrationOffset + degrees + 360) % 360;
-        updateDebugDisplay();
-      }
-    }
     
     // Center marker toggle
     const centerMarker = document.getElementById('map-center-debug');
