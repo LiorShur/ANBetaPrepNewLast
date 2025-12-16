@@ -292,6 +292,144 @@ textarea:focus-visible,
     overscroll-behavior: contain;
     touch-action: pan-y;
   }
+
+  /* Compass Debug Panel */
+  .compass-debug-panel {
+    position: fixed;
+    bottom: 80px;
+    right: 10px;
+    width: 280px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    border-radius: 12px;
+    padding: 12px;
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+  .compass-debug-panel.hidden {
+    display: none;
+  }
+  .debug-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: bold;
+  }
+  .debug-close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  .debug-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .debug-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .debug-label {
+    color: #aaa;
+    font-size: 12px;
+  }
+  .debug-value {
+    font-family: monospace;
+    font-size: 14px;
+    color: #4CAF50;
+  }
+  .debug-cardinal {
+    background: #4CAF50;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+    margin-left: 8px;
+  }
+  .debug-buttons {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .debug-btn {
+    flex: 1;
+    min-width: 50px;
+    padding: 8px 4px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+  }
+  .debug-btn:active {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  .debug-btn.primary {
+    width: 100%;
+    margin-top: 8px;
+    background: #4CAF50;
+    border-color: #4CAF50;
+    font-weight: bold;
+  }
+  .debug-btn.primary:active {
+    background: #388E3C;
+  }
+  .debug-instructions {
+    text-align: center;
+    margin-top: 8px;
+    color: #888;
+    font-size: 11px;
+  }
+  
+  /* Debug: Map center marker (shows where map thinks center is) */
+  .map-center-debug {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background: red;
+    border: 2px solid white;
+    border-radius: 50%;
+    z-index: 9999;
+    pointer-events: none;
+    box-shadow: 0 0 10px rgba(255,0,0,0.5);
+  }
+  .map-center-debug::before,
+  .map-center-debug::after {
+    content: '';
+    position: absolute;
+    background: red;
+  }
+  .map-center-debug::before {
+    width: 40px;
+    height: 2px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .map-center-debug::after {
+    width: 2px;
+    height: 40px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .map-center-debug.hidden { display: none; }
   
 </style>
 
@@ -476,6 +614,61 @@ textarea:focus-visible,
     <div id="compass-needle"></div>
     <div id="compass-center"></div>
   </div>
+
+  <!-- Compass Debug Panel (tap compass 3x to toggle) -->
+  <div id="compass-debug-panel" class="compass-debug-panel hidden">
+    <div class="debug-header">
+      <span>🧭 Compass Debug</span>
+      <button id="close-debug-panel" class="debug-close-btn">✕</button>
+    </div>
+    <div class="debug-content">
+      <div class="debug-row">
+        <span class="debug-label">Heading:</span>
+        <span id="debug-heading" class="debug-value">--°</span>
+        <span id="debug-cardinal" class="debug-cardinal">--</span>
+      </div>
+      <div class="debug-row">
+        <span class="debug-label">Alpha:</span>
+        <span id="debug-alpha" class="debug-value">--</span>
+      </div>
+      <div class="debug-row">
+        <span class="debug-label">Beta:</span>
+        <span id="debug-beta" class="debug-value">--</span>
+      </div>
+      <div class="debug-row">
+        <span class="debug-label">Gamma:</span>
+        <span id="debug-gamma" class="debug-value">--</span>
+      </div>
+      <div class="debug-row">
+        <span class="debug-label">Offset:</span>
+        <span id="debug-offset" class="debug-value">0°</span>
+      </div>
+      <div class="debug-row">
+        <span class="debug-label">Source:</span>
+        <span id="debug-source" class="debug-value">--</span>
+      </div>
+      <div class="debug-row" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px;">
+        <span class="debug-label">Map offset:</span>
+        <span id="debug-map-offset" class="debug-value" style="font-size: 11px;">--</span>
+      </div>
+      <div class="debug-buttons">
+        <button id="calibrate-minus90" class="debug-btn">-90°</button>
+        <button id="calibrate-minus45" class="debug-btn">-45°</button>
+        <button id="calibrate-reset" class="debug-btn">Reset</button>
+        <button id="calibrate-plus45" class="debug-btn">+45°</button>
+        <button id="calibrate-plus90" class="debug-btn">+90°</button>
+      </div>
+      <button id="calibrate-north" class="debug-btn primary">📍 Set Current as North</button>
+      <button id="toggle-center-marker" class="debug-btn">🎯 Show Center Marker</button>
+      <div class="debug-instructions">
+        <small>Face true north, then tap "Set Current as North" to calibrate.<br>
+        Center marker shows if map is properly centered.</small>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Debug center marker -->
+  <div id="map-center-debug" class="map-center-debug hidden"></div>
 
   <!-- Top Control Bar -->
   <div class="top-bar" role="toolbar" aria-label="Tracking controls">
@@ -728,6 +921,160 @@ textarea:focus-visible,
       };
     }
   }
+
+  // ============================================
+  // COMPASS DEBUG PANEL
+  // Triple-tap compass to toggle debug panel
+  // ============================================
+  (function initCompassDebug() {
+    const compass = document.getElementById('compass');
+    const debugPanel = document.getElementById('compass-debug-panel');
+    const closeBtn = document.getElementById('close-debug-panel');
+    
+    if (!compass || !debugPanel) return;
+    
+    let tapCount = 0;
+    let tapTimer = null;
+    let debugUpdateInterval = null;
+    let lastOrientationEvent = null;
+    
+    // Triple-tap compass to toggle debug panel
+    compass.addEventListener('click', () => {
+      tapCount++;
+      clearTimeout(tapTimer);
+      
+      if (tapCount >= 3) {
+        tapCount = 0;
+        toggleDebugPanel();
+      } else {
+        tapTimer = setTimeout(() => { tapCount = 0; }, 500);
+      }
+    });
+    
+    // Close button
+    closeBtn?.addEventListener('click', () => {
+      debugPanel.classList.add('hidden');
+      stopDebugUpdates();
+    });
+    
+    function toggleDebugPanel() {
+      const isHidden = debugPanel.classList.toggle('hidden');
+      if (!isHidden) {
+        startDebugUpdates();
+      } else {
+        stopDebugUpdates();
+      }
+    }
+    
+    function startDebugUpdates() {
+      // Listen to orientation events for debug display
+      window.addEventListener('deviceorientation', handleDebugOrientation);
+      window.addEventListener('deviceorientationabsolute', handleDebugOrientation);
+      
+      // Update display every 100ms
+      debugUpdateInterval = setInterval(updateDebugDisplay, 100);
+      updateDebugDisplay();
+    }
+    
+    function stopDebugUpdates() {
+      window.removeEventListener('deviceorientation', handleDebugOrientation);
+      window.removeEventListener('deviceorientationabsolute', handleDebugOrientation);
+      clearInterval(debugUpdateInterval);
+    }
+    
+    function handleDebugOrientation(event) {
+      lastOrientationEvent = event;
+    }
+    
+    function updateDebugDisplay() {
+      const compassCtrl = window.app?.controllers?.compass;
+      
+      // Update heading
+      const headingEl = document.getElementById('debug-heading');
+      const cardinalEl = document.getElementById('debug-cardinal');
+      if (compassCtrl && headingEl) {
+        headingEl.textContent = compassCtrl.currentHeading.toFixed(1) + '°';
+        cardinalEl.textContent = compassCtrl.getCardinalDirection();
+      }
+      
+      // Update raw values
+      if (lastOrientationEvent) {
+        const e = lastOrientationEvent;
+        document.getElementById('debug-alpha').textContent = e.alpha?.toFixed(1) ?? '--';
+        document.getElementById('debug-beta').textContent = e.beta?.toFixed(1) ?? '--';
+        document.getElementById('debug-gamma').textContent = e.gamma?.toFixed(1) ?? '--';
+        document.getElementById('debug-source').textContent = 
+          e.type === 'deviceorientationabsolute' ? 'absolute ✓' : 
+          e.absolute ? 'relative (abs)' : 'relative';
+      }
+      
+      // Update calibration offset
+      const offsetEl = document.getElementById('debug-offset');
+      if (compassCtrl && offsetEl) {
+        offsetEl.textContent = compassCtrl.calibrationOffset.toFixed(0) + '°';
+      }
+      
+      // Update map container offset info
+      const mapOffsetEl = document.getElementById('debug-map-offset');
+      if (mapOffsetEl) {
+        const wrapper = document.getElementById('map-wrapper');
+        const container = document.getElementById('map-container');
+        if (wrapper && container) {
+          const wrapperRect = wrapper.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const computedStyle = window.getComputedStyle(container);
+          mapOffsetEl.textContent = 
+            `T:${computedStyle.top} L:${computedStyle.left} W:${computedStyle.width}`;
+        }
+      }
+    }
+    
+    // Calibration buttons
+    document.getElementById('calibrate-minus90')?.addEventListener('click', () => {
+      adjustCalibration(-90);
+    });
+    document.getElementById('calibrate-minus45')?.addEventListener('click', () => {
+      adjustCalibration(-45);
+    });
+    document.getElementById('calibrate-reset')?.addEventListener('click', () => {
+      const compassCtrl = window.app?.controllers?.compass;
+      if (compassCtrl) {
+        compassCtrl.calibrationOffset = 0;
+        updateDebugDisplay();
+      }
+    });
+    document.getElementById('calibrate-plus45')?.addEventListener('click', () => {
+      adjustCalibration(45);
+    });
+    document.getElementById('calibrate-plus90')?.addEventListener('click', () => {
+      adjustCalibration(90);
+    });
+    document.getElementById('calibrate-north')?.addEventListener('click', () => {
+      const compassCtrl = window.app?.controllers?.compass;
+      if (compassCtrl) {
+        compassCtrl.calibrateToNorth();
+        updateDebugDisplay();
+      }
+    });
+    
+    function adjustCalibration(degrees) {
+      const compassCtrl = window.app?.controllers?.compass;
+      if (compassCtrl) {
+        compassCtrl.calibrationOffset = (compassCtrl.calibrationOffset + degrees + 360) % 360;
+        updateDebugDisplay();
+      }
+    }
+    
+    // Center marker toggle
+    const centerMarker = document.getElementById('map-center-debug');
+    const centerMarkerBtn = document.getElementById('toggle-center-marker');
+    centerMarkerBtn?.addEventListener('click', () => {
+      const isHidden = centerMarker?.classList.toggle('hidden');
+      centerMarkerBtn.textContent = isHidden ? '🎯 Show Center Marker' : '🎯 Hide Center Marker';
+    });
+    
+    console.log('🧭 Compass debug panel initialized (triple-tap compass to open)');
+  })();
 </script>
 </body>
 </html>
