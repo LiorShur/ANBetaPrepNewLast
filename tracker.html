@@ -210,7 +210,16 @@ textarea:focus-visible,
   }
   
   /* Offset existing elements for nav */
-  #map-container { top: 50px !important; height: calc(100vh - 50px) !important; }
+  #map-wrapper {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    z-index: 1;
+  }
+  /* Don't override #map-container - it needs its rotation-friendly positioning from layout.css */
   .top-bar { top: 58px !important; }
   .floating-left { top: 500px !important; }
   .floating-right { top: 475px !important; }
@@ -454,10 +463,13 @@ textarea:focus-visible,
     <span class="sync-icon">☁️</span>
     <span class="sync-text">Syncing...</span>
   </div>
-  <!-- Map Container -->
-  <main id="map-container" role="main" aria-label="Trail tracking map">
-    <div id="map" role="application" aria-label="Interactive map"></div>
-  </main>
+  <!-- Map Wrapper (positioned for navbar) -->
+  <div id="map-wrapper">
+    <!-- Map Container (rotation-friendly positioning inside wrapper) -->
+    <main id="map-container" role="main" aria-label="Trail tracking map">
+      <div id="map" role="application" aria-label="Interactive map"></div>
+    </main>
+  </div>
 
   <!-- Compass -->
   <div id="compass">
